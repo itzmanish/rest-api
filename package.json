@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "nodemon app.js",
+    "pretest": "eslint --ignore-path .gitignore ."
   },
   "repository": {
     "type": "git",
@@ -15,5 +16,17 @@
   "bugs": {
     "url": "https://github.com/itzmanish/rest-api/issues"
   },
-  "homepage": "https://github.com/itzmanish/rest-api#readme"
+  "homepage": "https://github.com/itzmanish/rest-api#readme",
+  "dependencies": {
+    "body-parser": "^1.18.3",
+    "express": "^4.16.3",
+    "moment": "^2.22.2",
+    "mongodb": "^3.1.1",
+    "mongoose": "^5.2.7",
+    "morgan": "^1.9.0"
+  },
+  "devDependencies": {
+    "eslint": "^5.3.0",
+    "eslint-config-strongloop": "^2.1.0"
+  }
 }
