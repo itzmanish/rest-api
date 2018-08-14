@@ -27,6 +27,9 @@ const itemSchemas = new mongoose.Schema({
   },
   _creatorID: {
     type: mongoose.Schema.Types.ObjectId
+  },
+  item_image: {
+    type: String
   }
 });
 
@@ -39,6 +42,7 @@ itemSchemas.methods.toJSON = function() {
     title: this.title,
     category: this.category,
     content: this.content,
+    image: this.item_image,
     available: this.available,
     _creatorID: this._creatorID,
     createdAt: this.createdAt,
