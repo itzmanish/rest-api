@@ -4,7 +4,12 @@ const slugify = require("slugify");
 const { ObjectID } = require("mongodb");
 const router = express.Router();
 const Items = require("./../models/items");
+const Users = require("./../models/users");
+const Categories = require("./../models/categories");
 const multer = require("multer");
+const passport = require("passport");
+const isAuthenticated = require("./../middlewares/auth/authorization");
+require("./../lib/auth/passport-auth");
 var storage = multer.diskStorage({
   destination: function(req, file, cb) {
     cb(null, "./../uploads");
@@ -34,27 +39,45 @@ router.get("/", (req, res) => {
 });
 
 router.get("/items", (req, res) => {
-  Items.find({})
-    .then(doc => res.send(doc))
+  Items.find()
+    .select(category)
+    .exec()
+    .then(doc => res.json(doc))
     .catch(e => console.log(e));
 });
 
 router.get("/item/:slug", (req, res) => {
   Items.findOne({ slug: req.params.slug })
     .then(doc => {
-      res.send(doc);
+      res.json(doc);
     })
     .catch(e => res.status(404).send());
 });
 
 router.get("/categories", (req, res) => {
-  res.send("all categories");
+  Categories.find({})
+    .select("-_id")
+    .populate("items", "slug")
+    .then(doc => {
+      res.json(doc);
+    })
+    .catch(e => console.log(e));
 });
 
 router.get("/category/:slug", (req, res) => {
   res.send("category specific things");
 });
 
+router.get("/users", (req, res) => {
+  Users.find({}).then(user => {
+    res.send(user);
+  });
+});
+
+router.get("/logout", (req, res) => {
+  req.logOut();
+  res.status(200).send("Logout Successfully");
+});
 router.post("/create_items", upload.single("item-image"), (req, res) => {
   let body = _.pick(req.body, [
     "title",
@@ -64,21 +87,32 @@ router.post("/create_items", upload.single("item-image"), (req, res) => {
     "item_image"
   ]);
   let slug = slugify(body.title).toLowerCase();
-  Items.findOne({ item_id: body.item_id, slug: slug }).then(doc => {
+  Promise.all([
+    Categories.findOne({ catTitle: body.category }),
+    Items.findOne({ item_id: body.item_id, slug: slug })
+  ]).then(([cat, doc]) => {
     if (doc) {
       return res.send("title already exist. Please try a different One");
+    } else if (cat) {
+      return res.send("category already exist");
     }
     let item = new Items({
       title: body.title,
       item_id: body.item_id,
       content: body.content,
-      category: body.category,
       slug: slug,
       item_image: req.file.path
     });
+    let category = new Categories({
+      catTitle: body.category
+    });
     item
       .save()
-      .then(items => res.send(items))
+      .then(items => {
+        category.items = items._id;
+        category.save();
+        res.json(items);
+      })
       .catch(e => console.log(e));
   });
 });
@@ -108,7 +142,7 @@ router.patch("/edit/:id", upload.single("item-image"), (req, res) => {
           if (!doc) {
             return res.status(404).send("Items not found");
           }
-          res.send(doc);
+          res.json(doc);
         });
       } else if (item) {
         return res
@@ -143,4 +177,45 @@ router.delete("/delete/:id", (req, res) => {
     res.status(404).send();
   });
 });
+
+router.post("/signup", (req, res) => {
+  let body = _.pick(req.body, [
+    "firstname",
+    "lastname",
+    "email",
+    "username",
+    "password"
+  ]);
+  console.log(body);
+  Users.findOne({ email: body.email })
+    .then(user => {
+      if (user) {
+        return res.status(404).send("User already exist");
+      }
+      let newUser = new Users(body);
+      console.log(body);
+      newUser.password = newUser.encryptPassword(body.password);
+      newUser
+        .save()
+        .then(doc => {
+          if (!doc) {
+            console.log("user could not be created");
+          }
+          res.send(doc);
+        })
+        .catch(e => console.log(e));
+    })
+    .catch(e => console.log(e));
+});
+
+router.post("/login", (req, res, next) => {
+  passport.authenticate("local", (err, user) => {
+    if (err) return err;
+    req.logIn(user, err => {
+      if (err) return err;
+      return res.send(user);
+    });
+  })(req, res, next);
+});
+
 module.exports = router;

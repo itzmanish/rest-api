@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const categories = require("./categories");
 const timestamps = require("mongoose-timestamp");
 const itemSchemas = new mongoose.Schema({
   title: {
@@ -40,7 +41,7 @@ itemSchemas.methods.toJSON = function() {
     slug: this.slug,
     item_id: this.item_id,
     title: this.title,
-    category: this.category,
+    category: this.categories,
     content: this.content,
     image: this.item_image,
     available: this.available,
@@ -49,6 +50,6 @@ itemSchemas.methods.toJSON = function() {
     updatedAt: this.updatedAt
   };
 };
-let item = mongoose.model("item", itemSchemas);
+let item = mongoose.model("Items", itemSchemas);
 
 module.exports = item;
