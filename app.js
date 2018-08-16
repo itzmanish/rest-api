@@ -2,6 +2,7 @@ const express = require("express");
 const BodyParser = require("body-parser");
 const morgan = require("morgan");
 const helmet = require("helmet");
+const hpp = require("hpp");
 const cookieParser = require("cookie-parser");
 const session = require("express-session");
 const passport = require("passport");
@@ -11,20 +12,27 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(morgan("dev"));
-app.use(helmet());
 
 app.use(BodyParser.json());
 app.use(BodyParser.urlencoded({ extended: false }));
+// i should use hpp for preventing dos attack on my express app
+app.use(hpp());
+// security is important so helmet is
+app.use(helmet());
+app.use(helmet.frameguard("SAMEORIGIN"));
+app.use(helmet.xssFilter({ setOnOldIE: true }));
+app.use(helmet.noSniff());
 
 app.use(cookieParser());
 app.use(
   session({
     secret: "mostsecretkey",
+    key: "secretSession",
     resave: true,
     saveUninitialized: true,
     expires: 1800000,
     secure: true,
-    cookie: { httpOnly: true }
+    cookie: { httpOnly: true, secure: true }
   })
 );
 

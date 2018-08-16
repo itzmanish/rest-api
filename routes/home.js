@@ -9,6 +9,7 @@ const Categories = require("./../models/categories");
 const multer = require("multer");
 const passport = require("passport");
 const isAuthenticated = require("./../middlewares/auth/authorization");
+const identicon = require("./../middlewares/identicon");
 require("./../lib/auth/passport-auth");
 
 // multer configuration start
@@ -45,8 +46,6 @@ router.get("/", (req, res) => {
 
 router.get("/items", (req, res) => {
   Items.find()
-    .select(category)
-    .exec()
     .then(doc => res.json(doc))
     .catch(e => console.log(e));
 });
@@ -101,8 +100,6 @@ router.post("/create_items", upload.single("item-image"), (req, res) => {
   ]).then(([cat, doc]) => {
     if (doc) {
       return res.send("title already exist. Please try a different One");
-    } else if (cat) {
-      return res.send("category already exist");
     }
     let item = new Items({
       title: body.title,
@@ -111,12 +108,17 @@ router.post("/create_items", upload.single("item-image"), (req, res) => {
       slug: slug,
       item_image: req.file.path
     });
-    let category = new Categories({
-      catTitle: body.category
-    });
+
     item
       .save()
       .then(items => {
+        if (cat) {
+          items = items._id;
+          return cat.push(items);
+        }
+        let category = new Categories({
+          catTitle: body.category
+        });
         category.items = items._id;
         category.save();
         res.json(items);
@@ -133,15 +135,14 @@ router.post("/signup", (req, res) => {
     "username",
     "password"
   ]);
-  console.log(body);
   Users.findOne({ email: body.email })
     .then(user => {
       if (user) {
         return res.status(404).send("User already exist");
       }
       let newUser = new Users(body);
-      console.log(body);
       newUser.password = newUser.encryptPassword(body.password);
+      newUser.userImg = identicon(body.username);
       newUser
         .save()
         .then(doc => {
@@ -156,14 +157,26 @@ router.post("/signup", (req, res) => {
 });
 
 router.post("/login", (req, res, next) => {
-  passport.authenticate("local", (err, user) => {
-    if (err) return err;
-    req.logIn(user, err => {
-      if (err) return err;
+  passport.authenticate("local", function(err, user, info) {
+    if (err) {
+      return next(err); // will generate a 500 error
+    }
+    if (!user) {
+      return res.status(409).send("User or Password does not matched");
+    }
+    req.logIn(user, function(err) {
+      if (err) {
+        console.error(err);
+        return next(err);
+      }
       return res.send(user);
     });
   })(req, res, next);
 });
+
+// router.post("/login", (req, res) => {
+//   res.send("hey");
+// });
 // All POST request ends
 
 // All PATCH and DELETE request start
@@ -227,6 +240,14 @@ router.delete("/delete/:id", (req, res) => {
     res.status(404).send();
   });
 });
+
+router.delete("/:username", (req, res) => {
+  Users.findOneAndRemove({ username: req.params.username }).then(user => {
+    if (user) return res.send("Account deleted successfully");
+    res.status(404).send("user not found");
+  });
+});
+
 // All PATCH and DELETE request end
 
 module.exports = router;

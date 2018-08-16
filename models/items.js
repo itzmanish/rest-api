@@ -19,9 +19,6 @@ const itemSchemas = new mongoose.Schema({
     type: String,
     required: true
   },
-  category: {
-    type: String
-  },
   available: {
     type: Boolean,
     default: true
@@ -41,7 +38,6 @@ itemSchemas.methods.toJSON = function() {
     slug: this.slug,
     item_id: this.item_id,
     title: this.title,
-    category: this.categories,
     content: this.content,
     image: this.item_image,
     available: this.available,

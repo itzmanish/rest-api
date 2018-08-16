@@ -31,6 +31,9 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  userImg: {
+    type: String
+  },
   token: {
     type: String,
     unique: true
@@ -39,8 +42,6 @@ const userSchema = new mongoose.Schema({
 
 userSchema.methods.toJSON = function() {
   return {
-    firstname: this.firstname,
-    lastname: this.lastname,
     username: this.username,
     email: this.email
   };
