@@ -10,6 +10,8 @@ const multer = require("multer");
 const passport = require("passport");
 const isAuthenticated = require("./../middlewares/auth/authorization");
 require("./../lib/auth/passport-auth");
+
+// multer configuration start
 var storage = multer.diskStorage({
   destination: function(req, file, cb) {
     cb(null, "./../uploads");
@@ -33,6 +35,9 @@ var upload = multer({
   },
   fileFilter: fileFilter
 });
+// multer configuration end
+
+// All GET request start
 
 router.get("/", (req, res) => {
   res.send("Hey this is working");
@@ -78,6 +83,9 @@ router.get("/logout", (req, res) => {
   req.logOut();
   res.status(200).send("Logout Successfully");
 });
+// All GET request end
+
+// All POST request start
 router.post("/create_items", upload.single("item-image"), (req, res) => {
   let body = _.pick(req.body, [
     "title",
@@ -117,6 +125,48 @@ router.post("/create_items", upload.single("item-image"), (req, res) => {
   });
 });
 
+router.post("/signup", (req, res) => {
+  let body = _.pick(req.body, [
+    "firstname",
+    "lastname",
+    "email",
+    "username",
+    "password"
+  ]);
+  console.log(body);
+  Users.findOne({ email: body.email })
+    .then(user => {
+      if (user) {
+        return res.status(404).send("User already exist");
+      }
+      let newUser = new Users(body);
+      console.log(body);
+      newUser.password = newUser.encryptPassword(body.password);
+      newUser
+        .save()
+        .then(doc => {
+          if (!doc) {
+            console.log("user could not be created");
+          }
+          res.send(doc);
+        })
+        .catch(e => console.log(e));
+    })
+    .catch(e => console.log(e));
+});
+
+router.post("/login", (req, res, next) => {
+  passport.authenticate("local", (err, user) => {
+    if (err) return err;
+    req.logIn(user, err => {
+      if (err) return err;
+      return res.send(user);
+    });
+  })(req, res, next);
+});
+// All POST request ends
+
+// All PATCH and DELETE request start
 router.patch("/edit/:id", upload.single("item-image"), (req, res) => {
   let body = _.pick(req.body, [
     "title",
@@ -177,45 +227,6 @@ router.delete("/delete/:id", (req, res) => {
     res.status(404).send();
   });
 });
-
-router.post("/signup", (req, res) => {
-  let body = _.pick(req.body, [
-    "firstname",
-    "lastname",
-    "email",
-    "username",
-    "password"
-  ]);
-  console.log(body);
-  Users.findOne({ email: body.email })
-    .then(user => {
-      if (user) {
-        return res.status(404).send("User already exist");
-      }
-      let newUser = new Users(body);
-      console.log(body);
-      newUser.password = newUser.encryptPassword(body.password);
-      newUser
-        .save()
-        .then(doc => {
-          if (!doc) {
-            console.log("user could not be created");
-          }
-          res.send(doc);
-        })
-        .catch(e => console.log(e));
-    })
-    .catch(e => console.log(e));
-});
-
-router.post("/login", (req, res, next) => {
-  passport.authenticate("local", (err, user) => {
-    if (err) return err;
-    req.logIn(user, err => {
-      if (err) return err;
-      return res.send(user);
-    });
-  })(req, res, next);
-});
+// All PATCH and DELETE request end
 
 module.exports = router;

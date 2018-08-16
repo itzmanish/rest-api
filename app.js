@@ -16,7 +16,7 @@ app.use(helmet());
 app.use(BodyParser.json());
 app.use(BodyParser.urlencoded({ extended: false }));
 
-app.use(cookieParser);
+app.use(cookieParser());
 app.use(
   session({
     secret: "mostsecretkey",
@@ -31,8 +31,7 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
-console.log("till this is working");
-
+// middleware for CORS
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.header(
@@ -46,6 +45,7 @@ app.use((req, res, next) => {
   next();
 });
 
+// All routes is initialized here
 const HomeRoutes = require("./routes/home");
 app.use("/", HomeRoutes);
 
