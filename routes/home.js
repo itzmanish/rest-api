@@ -8,9 +8,12 @@ const Users = require("./../models/users");
 const Categories = require("./../models/categories");
 const multer = require("multer");
 const passport = require("passport");
-const isAuthenticated = require("./../middlewares/auth/authorization");
 const identicon = require("./../middlewares/identicon");
-require("./../lib/auth/passport-auth");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+require("./../lib/auth/passport-jwt");
+
+const isAuthenticated = require("./../middlewares/auth/authorization");
 
 // multer configuration start
 var storage = multer.diskStorage({
@@ -78,10 +81,30 @@ router.get("/users", (req, res) => {
   });
 });
 
+router.get("/me", isAuthenticated, (req, res) => {
+  console.log(req.user);
+  res.send(req.user);
+});
+
+router.get("/login", (req, res) => {
+  res.render("login");
+});
+
 router.get("/logout", (req, res) => {
   req.logOut();
   res.status(200).send("Logout Successfully");
 });
+
+router.get(
+  "/protected",
+  passport.authenticate("jwt", { session: false }),
+  (req, res) => {
+    const { user } = req;
+
+    res.status(200).send({ user });
+  }
+);
+
 // All GET request end
 
 // All POST request start
@@ -127,7 +150,54 @@ router.post("/create_items", upload.single("item-image"), (req, res) => {
   });
 });
 
-router.post("/signup", (req, res) => {
+// router.post("/signup", (req, res) => {
+//   let body = _.pick(req.body, [
+//     "firstname",
+//     "lastname",
+//     "email",
+//     "username",
+//     "password"
+//   ]);
+//   Users.findOne({ email: body.email })
+//     .then(user => {
+//       if (user) {
+//         return res.status(404).send("User already exist");
+//       }
+//       let newUser = new Users(body);
+//       newUser.password = newUser.encryptPassword(body.password);
+//       newUser.userImg = identicon(body.username);
+//       newUser
+//         .save()
+//         .then(doc => {
+//           if (!doc) {
+//             console.log("user could not be created");
+//           }
+//           res.send(doc);
+//         })
+//         .catch(e => console.log(e));
+//     })
+//     .catch(e => console.log(e));
+// });
+
+// router.post("/login", (req, res, next) => {
+//   passport.authenticate("local", function(err, user, info) {
+//     if (err) {
+//       return next(err); // will generate a 500 error
+//     }
+//     if (!user) {
+//       return res.status(409).send("User or Password does not matched");
+//     }
+//     req.logIn(user, function(err) {
+//       if (err) {
+//         console.error(err);
+//         return next(err);
+//       }
+//       return res.send(user);
+//     });
+//   })(req, res, next);
+// });
+
+router.post("/signup", async (req, res) => {
   let body = _.pick(req.body, [
     "firstname",
     "lastname",
@@ -135,48 +205,56 @@ router.post("/signup", (req, res) => {
     "username",
     "password"
   ]);
-  Users.findOne({ email: body.email })
-    .then(user => {
-      if (user) {
-        return res.status(404).send("User already exist");
-      }
-      let newUser = new Users(body);
-      newUser.password = newUser.encryptPassword(body.password);
-      newUser.userImg = identicon(body.username);
-      newUser
-        .save()
-        .then(doc => {
-          if (!doc) {
-            console.log("user could not be created");
-          }
-          res.send(doc);
-        })
-        .catch(e => console.log(e));
-    })
-    .catch(e => console.log(e));
-});
+  // authentication will take approximately 13 seconds
+  // https://pthree.org/wp-content/uploads/2016/06/bcrypt.png
+  const hashCost = 10;
 
-router.post("/login", (req, res, next) => {
-  passport.authenticate("local", function(err, user, info) {
-    if (err) {
-      return next(err); // will generate a 500 error
+  try {
+    let user = await Users.findOne({ username: body.username });
+    if (user) {
+      return res.status(404).json("User already exist");
     }
-    if (!user) {
-      return res.status(409).send("User or Password does not matched");
-    }
-    req.logIn(user, function(err) {
-      if (err) {
-        console.error(err);
-        return next(err);
-      }
-      return res.send(user);
+    let newUser = new Users(body);
+    newUser.userImg = identicon(body.username);
+    newUser.password = await bcrypt.hash(body.password, hashCost);
+
+    let userData = await newUser.save();
+    res.status(200).json(userData);
+  } catch (error) {
+    console.log(error);
+    res.status(400).json({
+      error: "req body should take the form { email, password }"
     });
-  })(req, res, next);
+  }
 });
 
-// router.post("/login", (req, res) => {
-//   res.send("hey");
-// });
+router.post("/login", (req, res) => {
+  passport.authenticate("local", { session: false }, (error, user) => {
+    if (error || !user) {
+      return res.status(400).json({ error });
+    }
+    /** This is what ends up in our JWT */
+    const payload = {
+      username: user.username,
+      expires: Date.now() + parseInt(18000)
+    };
+
+    /** assigns payload to req.user */
+    req.login(payload, { session: false }, error => {
+      if (error) {
+        res.status(400).json({ error });
+      }
+
+      /** generate a signed json web token and return it in the response */
+      const token = jwt.sign(JSON.stringify(payload), "Isken1che426B@mHai?");
+
+      /** assign our jwt to the cookie */
+      res.cookie("ads", jwt, { httpOnly: true, secure: true });
+      res.status(200).json({ user });
+    });
+  })(req, res);
+});
+
 // All POST request ends
 
 // All PATCH and DELETE request start
