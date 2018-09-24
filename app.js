@@ -2,17 +2,24 @@ const express = require("express");
 const BodyParser = require("body-parser");
 const morgan = require("morgan");
 const helmet = require("helmet");
-const hpp = require("hpp");
 const cookieParser = require("cookie-parser");
 const session = require("express-session");
 const passport = require("passport");
 const hbs = require("express-handlebars");
+const hpp = require("hpp");
+const https = require("https");
+const fs = require("fs");
 const path = require("path");
 const config = require("./config");
 
 require("./middlewares/database/mongoose");
 const app = express();
 const PORT = process.env.PORT || 3000;
+// https server config
+const httpsOptions = {
+  cert: fs.readFileSync(path.join(__dirname, "ssl", "server.crt")),
+  key: fs.readFileSync(path.join(__dirname, "ssl", "server.key"))
+};
 
 app.use(morgan("dev"));
 
@@ -29,9 +36,10 @@ app.use(helmet.xssFilter({ setOnOldIE: true }));
 app.use(helmet.noSniff());
 
 // using handlebars for views
-app.engine(".handlebars", hbs({ extname: ".handlebars" }));
-app.set("view engine", ".handlebars");
-app.set("views", path.join(__dirname, "views"));
+// right now no need of this
+// app.engine(".handlebars", hbs({ extname: ".handlebars" }));
+// app.set("view engine", ".handlebars");
+// app.set("views", path.join(__dirname, "views"));
 
 // using sessions
 app.use(cookieParser());
@@ -70,6 +78,10 @@ const AuthRoutes = require("./routes/auth");
 app.use("/", HomeRoutes);
 app.use("/auth", AuthRoutes);
 
-app.listen(PORT, () => {
-  console.log(`server started at ${PORT}`);
+https.createServer(httpsOptions, app).listen(PORT, () => {
+  console.log(`server is running on https://localhost:${PORT}`);
 });
+
+// app.listen(PORT, () => {
+//   console.log("server running");
+// });

@@ -11,7 +11,7 @@ const passport = require("passport");
 const identicon = require("./../middlewares/identicon");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-require("./../lib/auth/passport-jwt");
+require("./../lib/auth/passport-auth");
 
 const isAuthenticated = require("./../middlewares/auth/authorization");
 
@@ -150,53 +150,6 @@ router.post("/create_items", upload.single("item-image"), (req, res) => {
   });
 });
 
-// router.post("/signup", (req, res) => {
-//   let body = _.pick(req.body, [
-//     "firstname",
-//     "lastname",
-//     "email",
-//     "username",
-//     "password"
-//   ]);
-//   Users.findOne({ email: body.email })
-//     .then(user => {
-//       if (user) {
-//         return res.status(404).send("User already exist");
-//       }
-//       let newUser = new Users(body);
-//       newUser.password = newUser.encryptPassword(body.password);
-//       newUser.userImg = identicon(body.username);
-//       newUser
-//         .save()
-//         .then(doc => {
-//           if (!doc) {
-//             console.log("user could not be created");
-//           }
-//           res.send(doc);
-//         })
-//         .catch(e => console.log(e));
-//     })
-//     .catch(e => console.log(e));
-// });
-
-// router.post("/login", (req, res, next) => {
-//   passport.authenticate("local", function(err, user, info) {
-//     if (err) {
-//       return next(err); // will generate a 500 error
-//     }
-//     if (!user) {
-//       return res.status(409).send("User or Password does not matched");
-//     }
-//     req.logIn(user, function(err) {
-//       if (err) {
-//         console.error(err);
-//         return next(err);
-//       }
-//       return res.send(user);
-//     });
-//   })(req, res, next);
-// });
-
 router.post("/signup", async (req, res) => {
   let body = _.pick(req.body, [
     "firstname",
@@ -229,7 +182,7 @@ router.post("/signup", async (req, res) => {
 });
 
 router.post("/login", (req, res) => {
-  passport.authenticate("local", { session: false }, (error, user) => {
+  passport.authenticate("local", (error, user) => {
     if (error || !user) {
       return res.status(400).json({ error });
     }
@@ -240,20 +193,21 @@ router.post("/login", (req, res) => {
     };
 
     /** assigns payload to req.user */
-    req.login(payload, { session: false }, error => {
+    req.login(user, error => {
       if (error) {
         res.status(400).json({ error });
       }
 
       /** generate a signed json web token and return it in the response */
-      const token = jwt.sign(JSON.stringify(payload), "Isken1che426B@mHai?");
+      // const token = jwt.sign(JSON.stringify(payload), "Isken1che426B@mHai?");
 
       /** assign our jwt to the cookie */
-      res.cookie("ads", jwt, { httpOnly: true, secure: true });
+      // res.cookie("ads", jwt, { httpOnly: true, secure: true });
       res.status(200).json({ user });
     });
   })(req, res);
 });
+
 
 // All POST request ends
 
