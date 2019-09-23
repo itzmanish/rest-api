@@ -1,13 +1,10 @@
-const mongoose = require("mongoose");
-const { DBURL } = require("./../../config.js");
+const mongoose = require('mongoose');
+const { config } = require('./../../config.js');
 
 mongoose.Promise = global.Promise;
 mongoose
-  .connect(
-    DBURL,
-    { useNewUrlParser: true }
-  )
-  .then(() => console.log("Database Connected"))
+  .connect(config.DBURL, { useNewUrlParser: true })
+  .then(() => console.log('Database Connected'))
   .catch(e => {
     console.log(e);
   });

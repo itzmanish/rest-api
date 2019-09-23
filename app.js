@@ -1,29 +1,24 @@
-const express = require("express");
-const BodyParser = require("body-parser");
-const morgan = require("morgan");
-const helmet = require("helmet");
-const cookieParser = require("cookie-parser");
-const session = require("express-session");
-const passport = require("passport");
-const hbs = require("express-handlebars");
-const hpp = require("hpp");
-const https = require("https");
-const fs = require("fs");
-const path = require("path");
-const config = require("./config");
+const express = require('express');
+const BodyParser = require('body-parser');
+const morgan = require('morgan');
+const helmet = require('helmet');
+const cookieParser = require('cookie-parser');
+const session = require('express-session');
+const passport = require('passport');
+const hbs = require('express-handlebars');
+const hpp = require('hpp');
+const https = require('https');
+const fs = require('fs');
+const path = require('path');
+const { config } = require('./config');
 
-require("./middlewares/database/mongoose");
+require('./middlewares/database/mongoose');
 const app = express();
 const PORT = process.env.PORT || 3000;
-// https server config
-const httpsOptions = {
-  cert: fs.readFileSync(path.join(__dirname, "ssl", "server.crt")),
-  key: fs.readFileSync(path.join(__dirname, "ssl", "server.key"))
-};
 
-app.use(morgan("dev"));
+app.use(morgan('dev'));
 
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(BodyParser.json());
 app.use(BodyParser.urlencoded({ extended: false }));
@@ -31,7 +26,7 @@ app.use(BodyParser.urlencoded({ extended: false }));
 app.use(hpp());
 // security is important so helmet is
 app.use(helmet());
-app.use(helmet.frameguard("SAMEORIGIN"));
+app.use(helmet.frameguard('SAMEORIGIN'));
 app.use(helmet.xssFilter({ setOnOldIE: true }));
 app.use(helmet.noSniff());
 
@@ -45,7 +40,7 @@ app.use(helmet.noSniff());
 app.use(cookieParser());
 app.use(
   session({
-    secret: config.secretSession,
+    secret: config.secret,
     key: config.sessionKey,
     resave: true,
     saveUninitialized: true,
@@ -60,25 +55,25 @@ app.use(passport.session());
 
 // middleware for CORS
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
+  res.header('Access-Control-Allow-Origin', '*');
   res.header(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+    'Access-Control-Allow-Headers',
+    'Origin, X-Requested-With, Content-Type, Accept, Authorization'
   );
-  if (req.method === "OPTIONS") {
-    res.header("Access-Control-Allow-Methods", "PUT, POST, PATCH, DELETE, GET");
+  if (req.method === 'OPTIONS') {
+    res.header('Access-Control-Allow-Methods', 'PUT, POST, PATCH, DELETE, GET');
     return res.status(200).json({});
   }
   next();
 });
 
 // All routes is initialized here
-const HomeRoutes = require("./routes/home");
-const AuthRoutes = require("./routes/auth");
-app.use("/", HomeRoutes);
-app.use("/auth", AuthRoutes);
+const HomeRoutes = require('./routes/home');
+const AuthRoutes = require('./routes/auth');
+app.use('/', HomeRoutes);
+app.use('/auth', AuthRoutes);
 
-https.createServer(httpsOptions, app).listen(PORT, () => {
+app.listen(PORT, () => {
   console.log(`server is running on https://localhost:${PORT}`);
 });
 
