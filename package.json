@@ -24,7 +24,7 @@
     "crypto-js": "^3.1.9-1",
     "dotenv": "^8.1.0",
     "express": "^4.16.3",
-    "express-handlebars": "^3.0.0",
+    "express-handlebars": "^5.3.1",
     "express-session": "^1.15.6",
     "helmet": "^3.13.0",
     "hpp": "^0.2.2",
